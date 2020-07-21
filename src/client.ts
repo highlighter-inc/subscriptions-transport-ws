@@ -94,6 +94,7 @@ export class SubscriptionClient {
   private maxConnectTimeoutId: any;
   private middlewares: Middleware[];
   private maxConnectTimeGenerator: any;
+  private initMessageSent: boolean = false;
 
   constructor(
     url: string,
@@ -135,6 +136,10 @@ export class SubscriptionClient {
     this.client = null;
     this.maxConnectTimeGenerator = this.createMaxConnectTimeGenerator();
     this.connectionParams = this.getConnectionParams(connectionParams);
+
+    this.eventEmitter.on('disconnected', () => {
+      this.initMessageSent = false;
+    });
 
     if (!this.lazy) {
       this.connect();
@@ -457,7 +462,15 @@ export class SubscriptionClient {
   }
 
   private sendMessage(id: string, type: string, payload: any) {
-    this.sendMessageRaw(this.buildMessage(id, type, payload));
+    if (type === MessageTypes.GQL_CONNECTION_INIT) {
+      this.sendMessageRaw(this.buildMessage(id, type, payload));
+      this.initMessageSent = true;
+    } else if (this.initMessageSent) {
+      this.sendMessageRaw(this.buildMessage(id, type, payload));
+    } else {
+      // Schedule this message for sending. This queue will be flushed on next connection_init message.
+      this.unsentMessagesQueue.push(this.buildMessage(id, type, payload));
+    }
   }
 
   // send message, or queue it if connection is not open
