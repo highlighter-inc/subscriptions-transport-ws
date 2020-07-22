@@ -167,7 +167,9 @@ export class SubscriptionClient {
         this.sendMessage(undefined, MessageTypes.GQL_CONNECTION_TERMINATE, null);
       }
 
-      this.client.close();
+      if (this.status === this.wsImpl.CONNECTING || this.status === this.wsImpl.OPEN) {
+        this.client.close();
+      }
       this.client = null;
       this.eventEmitter.emit('disconnected');
 

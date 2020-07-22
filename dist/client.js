@@ -113,7 +113,9 @@ var SubscriptionClient = (function () {
                 this.unsubscribeAll();
                 this.sendMessage(undefined, message_types_1.default.GQL_CONNECTION_TERMINATE, null);
             }
-            this.client.close();
+            if (this.status === this.wsImpl.CONNECTING || this.status === this.wsImpl.OPEN) {
+                this.client.close();
+            }
             this.client = null;
             this.eventEmitter.emit('disconnected');
             if (!isForced) {
